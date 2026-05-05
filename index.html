@@ -732,74 +732,95 @@ function initSupabase() {
     return;
   }
 
-  // Build client options — new sb_publishable_ keys need to be
-  // passed as the Authorization header, not as the apikey header
   function buildClient(SB, u, k) {
     if (k.startsWith('sb_publishable_') || k.startsWith('sb_secret_')) {
-      return SB.createClient(u, k, {
-        global: {
-          headers: { Authorization: `Bearer ${k}` }
-        }
-      });
+      return SB.createClient(u, k, { global: { headers: { Authorization: `Bearer ${k}` } } });
     }
     return SB.createClient(u, k);
   }
 
-  // If the library is already loaded, just create the client
-  if (window.supabase && window.supabase.createClient) {
+  loadSupabaseLibrary().then(() => {
     try {
       supabase = buildClient(window.supabase, url, key);
       banner.style.display = 'none';
-    } catch(e) {
-      supabase = null;
-      banner.style.display = 'block';
-    }
-    return;
-  }
-
-  // Load the library dynamically — won't block nav or rendering
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-  script.onload = () => {
-    try {
-      supabase = buildClient(window.supabase, url, key);
-      banner.style.display = 'none';
-      // Refresh data now that DB is available
       loadHistory();
       loadBPList();
       loadWeightList();
     } catch(e) {
       supabase = null;
-      banner.style.display = 'block';
     }
-  };
-  script.onerror = () => {
+  }).catch(() => {
     supabase = null;
-    banner.style.display = 'block';
-    showToast('⚠️ Could not load Supabase library');
-  };
-  document.head.appendChild(script);
+  });
 }
 
 async function testConnection() {
-  // Re-init in case credentials were just typed
-  saveSettings();
-  if (!supabase) {
+  const url = document.getElementById('s_url').value.trim();
+  const key = document.getElementById('s_key').value.trim();
+
+  if (!url || !key) {
     showToast('⚠️ Enter URL & key first');
     return;
   }
+
+  showToast('Testing…');
+
   try {
-    const { error } = await supabase.from('meals').select('id').limit(1);
+    // Ensure library is loaded before proceeding
+    await loadSupabaseLibrary();
+
+    function buildClient(SB, u, k) {
+      if (k.startsWith('sb_publishable_') || k.startsWith('sb_secret_')) {
+        return SB.createClient(u, k, { global: { headers: { Authorization: `Bearer ${k}` } } });
+      }
+      return SB.createClient(u, k);
+    }
+
+    const client = buildClient(window.supabase, url, key);
+    const { error } = await client.from('meals').select('id').limit(1);
+
     if (error) {
-      showToast('❌ ' + (error.message || error.code || 'Unknown error'));
+      showToast('❌ ' + (error.message || error.code || 'Check credentials'));
       console.error('Supabase error:', error);
     } else {
+      // Save and store working client
+      supabase = client;
+      settings.url = url;
+      settings.key = key;
+      localStorage.setItem('diabestie_settings', JSON.stringify(settings));
+      document.getElementById('configBanner').style.display = 'none';
       showToast('✅ Connected to Supabase!');
+      loadHistory();
+      loadBPList();
+      loadWeightList();
     }
   } catch(e) {
-    showToast('❌ Connection failed — check console');
+    showToast('❌ ' + (e.message || 'Connection failed'));
     console.error(e);
   }
+}
+
+// Loads Supabase JS library once and resolves when ready
+function loadSupabaseLibrary() {
+  return new Promise((resolve, reject) => {
+    if (window.supabase && window.supabase.createClient) {
+      resolve();
+      return;
+    }
+    // Check if a script tag is already loading
+    const existing = document.querySelector('script[data-supabase]');
+    if (existing) {
+      existing.addEventListener('load', resolve);
+      existing.addEventListener('error', () => reject(new Error('Failed to load Supabase library')));
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    script.setAttribute('data-supabase', '1');
+    script.onload  = resolve;
+    script.onerror = () => reject(new Error('Failed to load Supabase library — check your internet connection'));
+    document.head.appendChild(script);
+  });
 }
 
 // ════════════════════════════════════════
