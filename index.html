@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>DiaBestie</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -665,12 +664,16 @@ let settings  = {};
 // INIT
 // ════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  loadSettings();
-  initSupabase();
-  loadHistory();
-  loadBPList();
-  loadWeightList();
+  try {
+    document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    loadSettings();
+    initSupabase();   // non-blocking — loads Supabase JS only if credentials are set
+    loadHistory();
+    loadBPList();
+    loadWeightList();
+  } catch(e) {
+    console.error('DiaBestie init error:', e);
+  }
 });
 
 // ════════════════════════════════════════
@@ -716,13 +719,21 @@ function updateDerived() {
 }
 
 // ════════════════════════════════════════
-// SUPABASE
+// SUPABASE — loaded lazily so it never blocks the UI
 // ════════════════════════════════════════
 function initSupabase() {
-  const url = settings.url;
-  const key = settings.key;
+  const url    = settings.url;
+  const key    = settings.key;
   const banner = document.getElementById('configBanner');
-  if (url && key) {
+
+  if (!url || !key) {
+    supabase = null;
+    banner.style.display = 'block';
+    return;
+  }
+
+  // If the library is already loaded, just create the client
+  if (window.supabase && window.supabase.createClient) {
     try {
       supabase = window.supabase.createClient(url, key);
       banner.style.display = 'none';
@@ -730,10 +741,31 @@ function initSupabase() {
       supabase = null;
       banner.style.display = 'block';
     }
-  } else {
+    return;
+  }
+
+  // Load the library dynamically — won't block nav or rendering
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+  script.onload = () => {
+    try {
+      supabase = window.supabase.createClient(url, key);
+      banner.style.display = 'none';
+      // Refresh data now that DB is available
+      loadHistory();
+      loadBPList();
+      loadWeightList();
+    } catch(e) {
+      supabase = null;
+      banner.style.display = 'block';
+    }
+  };
+  script.onerror = () => {
     supabase = null;
     banner.style.display = 'block';
-  }
+    showToast('⚠️ Could not load Supabase library');
+  };
+  document.head.appendChild(script);
 }
 
 async function testConnection() {
@@ -753,8 +785,12 @@ function showPage(name, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   btn.classList.add('active');
-  if (name === 'history') { loadHistory(); }
-  if (name === 'health')  { loadBPList(); loadWeightList(); }
+  try {
+    if (name === 'history') { loadHistory(); }
+    if (name === 'health')  { loadBPList(); loadWeightList(); }
+  } catch(e) {
+    console.error('Page load error:', e);
+  }
 }
 
 // ════════════════════════════════════════
