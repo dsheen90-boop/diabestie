@@ -732,10 +732,23 @@ function initSupabase() {
     return;
   }
 
+  // Build client options — new sb_publishable_ keys need to be
+  // passed as the Authorization header, not as the apikey header
+  function buildClient(SB, u, k) {
+    if (k.startsWith('sb_publishable_') || k.startsWith('sb_secret_')) {
+      return SB.createClient(u, k, {
+        global: {
+          headers: { Authorization: `Bearer ${k}` }
+        }
+      });
+    }
+    return SB.createClient(u, k);
+  }
+
   // If the library is already loaded, just create the client
   if (window.supabase && window.supabase.createClient) {
     try {
-      supabase = window.supabase.createClient(url, key);
+      supabase = buildClient(window.supabase, url, key);
       banner.style.display = 'none';
     } catch(e) {
       supabase = null;
@@ -749,7 +762,7 @@ function initSupabase() {
   script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
   script.onload = () => {
     try {
-      supabase = window.supabase.createClient(url, key);
+      supabase = buildClient(window.supabase, url, key);
       banner.style.display = 'none';
       // Refresh data now that DB is available
       loadHistory();
@@ -769,12 +782,24 @@ function initSupabase() {
 }
 
 async function testConnection() {
-  if (!supabase) { showToast('⚠️ Enter URL & key first'); return; }
+  // Re-init in case credentials were just typed
+  saveSettings();
+  if (!supabase) {
+    showToast('⚠️ Enter URL & key first');
+    return;
+  }
   try {
     const { error } = await supabase.from('meals').select('id').limit(1);
-    if (error) { showToast('❌ ' + error.message); }
-    else        { showToast('✅ Connected to Supabase!'); }
-  } catch(e) { showToast('❌ Connection failed'); }
+    if (error) {
+      showToast('❌ ' + (error.message || error.code || 'Unknown error'));
+      console.error('Supabase error:', error);
+    } else {
+      showToast('✅ Connected to Supabase!');
+    }
+  } catch(e) {
+    showToast('❌ Connection failed — check console');
+    console.error(e);
+  }
 }
 
 // ════════════════════════════════════════
