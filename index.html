@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>DiaBestie</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #f8f9fa;
+      --bg: #f4f6f9;
       --surface: #ffffff;
       --border: #e2e6ea;
       --text: #1a1a2e;
@@ -21,76 +22,123 @@
       --amber-light: #fffbeb;
       --red: #dc2626;
       --red-light: #fef2f2;
-      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-      --radius: 12px;
-      --radius-sm: 8px;
+      --purple: #7c3aed;
+      --purple-light: #f5f3ff;
+      --tab-h: 64px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --radius: 14px;
+      --radius-sm: 10px;
     }
+
+    html, body { height: 100%; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      max-width: 480px;
+      margin: 0 auto;
+      position: relative;
+      min-height: 100%;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .topbar h1 { font-size: 1.15rem; font-weight: 700; }
+    .topbar span { font-size: 0.75rem; color: var(--muted); }
+
+    /* ── Tab bar ── */
+    .tabbar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      height: calc(var(--tab-h) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      z-index: 20;
+    }
+    .tab-btn {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 24px 16px 48px;
-    }
-
-    header {
-      text-align: center;
-      margin-bottom: 28px;
-    }
-
-    header h1 {
-      font-size: 1.6rem;
-      font-weight: 700;
-      letter-spacing: -0.3px;
-      color: var(--text);
-    }
-
-    header p {
-      font-size: 0.85rem;
+      justify-content: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.62rem;
+      font-weight: 600;
       color: var(--muted);
-      margin-top: 4px;
+      transition: color 0.15s;
+      padding: 8px 4px;
+      letter-spacing: 0.3px;
     }
+    .tab-btn svg { transition: color 0.15s; }
+    .tab-btn.active { color: var(--accent); }
+    .tab-btn:active { opacity: 0.7; }
 
+    /* ── Pages ── */
+    .page {
+      display: none;
+      padding: 16px 16px calc(var(--tab-h) + var(--safe-bottom) + 16px);
+      flex-direction: column;
+      gap: 14px;
+      animation: fadeIn 0.18s ease;
+    }
+    .page.active { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Cards ── */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 24px;
-      width: 100%;
-      max-width: 420px;
+      padding: 18px;
+    }
+    .card-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+      margin-bottom: 14px;
     }
 
-    .card + .card { margin-top: 16px; }
-
-    /* ── Inputs ── */
-    .field { margin-bottom: 18px; }
+    /* ── Fields ── */
+    .field { margin-bottom: 14px; }
     .field:last-child { margin-bottom: 0; }
-
     label {
       display: block;
-      font-size: 0.78rem;
+      font-size: 0.73rem;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
       color: var(--muted);
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
-
-    .input-wrap {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    input[type="number"] {
+    .input-wrap { position: relative; display: flex; align-items: center; }
+    input[type="number"], input[type="text"], textarea, select {
       width: 100%;
-      padding: 12px 56px 12px 14px;
-      font-size: 1.1rem;
+      padding: 11px 14px;
+      font-size: 1rem;
       font-weight: 500;
       border: 1.5px solid var(--border);
       border-radius: var(--radius-sm);
@@ -98,252 +146,242 @@
       color: var(--text);
       outline: none;
       transition: border-color 0.15s;
-      -moz-appearance: textfield;
+      font-family: inherit;
     }
-
+    input[type="number"] { padding-right: 52px; -moz-appearance: textfield; }
     input[type="number"]::-webkit-outer-spin-button,
     input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); background: #fff; }
+    textarea { resize: none; height: 72px; font-size: 0.92rem; }
+    select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+    .unit-badge { position: absolute; right: 12px; font-size: 0.72rem; font-weight: 600; color: var(--muted); pointer-events: none; }
 
-    input[type="number"]:focus { border-color: var(--accent); background: #fff; }
-
-    .unit-badge {
-      position: absolute;
-      right: 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--muted);
-      pointer-events: none;
-      white-space: nowrap;
-    }
-
-    /* ── Button ── */
-    button.calc-btn {
-      width: 100%;
-      padding: 14px;
-      font-size: 1rem;
-      font-weight: 600;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: background 0.15s, transform 0.08s;
-      margin-top: 4px;
-    }
-
-    button.calc-btn:hover { background: #1d4ed8; }
-    button.calc-btn:active { transform: scale(0.98); }
-
-    /* ── Settings toggle ── */
-    .settings-toggle {
+    /* ── Buttons ── */
+    .btn {
       display: flex;
       align-items: center;
-      gap: 8px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--muted);
+      justify-content: center;
+      gap: 6px;
       width: 100%;
-      text-align: left;
-      user-select: none;
-    }
-
-    .settings-toggle:hover { color: var(--accent); }
-
-    .settings-toggle svg.chevron {
-      flex-shrink: 0;
-      margin-left: auto;
-      transition: transform 0.2s;
-    }
-
-    .settings-toggle[aria-expanded="true"] svg.chevron { transform: rotate(180deg); }
-
-    .settings-body {
-      display: none;
-      margin-top: 18px;
-      padding-top: 18px;
-      border-top: 1px solid var(--border);
-    }
-
-    .settings-body.open { display: block; }
-
-    .settings-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .settings-grid3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 14px;
-      margin-top: 14px;
-    }
-
-    .settings-hint {
-      margin-top: 12px;
-      font-size: 0.73rem;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .derived-vals {
-      margin-top: 14px;
-      padding: 12px 14px;
-      background: var(--accent-light);
+      padding: 13px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
       border-radius: var(--radius-sm);
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      text-align: center;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.08s;
+      font-family: inherit;
     }
+    .btn:active { transform: scale(0.98); opacity: 0.85; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1.5px solid var(--border); }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-sm { padding: 8px 14px; font-size: 0.82rem; width: auto; }
 
-    .derived-vals .dv-label {
-      font-size: 0.68rem;
-      color: var(--accent);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
+    /* ── Toggle (walk checkbox style) ── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
     }
-
-    .derived-vals .dv-val {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--accent);
-      margin-top: 2px;
+    .toggle-row:has(input:checked) { border-color: var(--green); background: var(--green-light); }
+    .toggle-label { font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+    .toggle-switch {
+      width: 44px; height: 26px; background: #cbd5e1; border-radius: 13px;
+      position: relative; transition: background 0.2s; flex-shrink: 0;
     }
-
-    /* ── Results ── */
-    #results { display: none; }
-
-    .results-header {
-      font-size: 0.78rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--muted);
-      margin-bottom: 14px;
+    .toggle-switch::after {
+      content: ''; position: absolute; top: 3px; left: 3px;
+      width: 20px; height: 20px; background: #fff; border-radius: 50%;
+      transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
+    .toggle-row:has(input:checked) .toggle-switch { background: var(--green); }
+    .toggle-row:has(input:checked) .toggle-switch::after { transform: translateX(18px); }
+    .toggle-row input[type="checkbox"] { display: none; }
 
-    .bolus-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
+    /* ── Bolus results ── */
+    .bolus-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .bolus-option {
       border-radius: var(--radius-sm);
-      padding: 16px 14px;
+      padding: 14px 12px;
       border: 1.5px solid var(--border);
       text-align: center;
+      cursor: pointer;
+      transition: box-shadow 0.15s, border-color 0.15s;
     }
-
-    .bolus-option .opt-label {
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
-    .bolus-option .opt-units {
-      font-size: 2rem;
-      font-weight: 800;
-      line-height: 1;
-      color: var(--text);
-    }
-
-    .bolus-option .opt-suffix {
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    .bolus-option .opt-bs {
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid var(--border);
-      font-size: 0.8rem;
-      color: var(--muted);
-      line-height: 1.3;
-    }
-
-    .bolus-option .opt-bs strong {
-      display: block;
-      font-size: 1.05rem;
-      font-weight: 700;
-      margin-top: 3px;
-    }
-
-    /* status colours */
+    .bolus-option:active { opacity: 0.8; }
+    .bolus-option.selected { box-shadow: 0 0 0 2px var(--accent); border-color: var(--accent); }
+    .bolus-option .opt-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 4px; }
+    .bolus-option .opt-units { font-size: 1.9rem; font-weight: 800; line-height: 1; color: var(--text); }
+    .bolus-option .opt-suffix { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .bolus-option .opt-bs { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 0.76rem; color: var(--muted); }
+    .bolus-option .opt-bs strong { display: block; font-size: 0.95rem; font-weight: 700; margin-top: 2px; }
     .bolus-option.status-good { border-color: #86efac; background: var(--green-light); }
     .bolus-option.status-good .opt-bs strong { color: var(--green); }
-
     .bolus-option.status-warn { border-color: #fcd34d; background: var(--amber-light); }
     .bolus-option.status-warn .opt-bs strong { color: var(--amber); }
-
     .bolus-option.status-low { border-color: #fca5a5; background: var(--red-light); }
     .bolus-option.status-low .opt-bs strong { color: var(--red); }
 
-    /* safety carbs alert */
+    /* safety alert */
     .safety-alert {
-      display: none;
-      align-items: flex-start;
-      gap: 10px;
+      display: none; align-items: flex-start; gap: 10px;
+      background: var(--amber-light); border: 1.5px solid #fcd34d;
+      border-radius: var(--radius-sm); padding: 13px;
+    }
+    .safety-alert.visible { display: flex; }
+    .safety-alert svg { flex-shrink: 0; margin-top: 1px; }
+    .safety-alert .sa-title { font-size: 0.8rem; font-weight: 700; color: var(--amber); margin-bottom: 3px; }
+    .safety-alert .sa-body { font-size: 0.8rem; color: #92400e; line-height: 1.5; }
+
+    /* log panel */
+    .log-panel { display: none; flex-direction: column; gap: 12px; padding-top: 14px; border-top: 1px solid var(--border); margin-top: 14px; }
+    .log-panel.visible { display: flex; }
+
+    /* ── Stat chips ── */
+    .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-chip {
+      background: var(--accent-light);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      text-align: center;
+    }
+    .stat-chip.green { background: var(--green-light); }
+    .stat-chip.amber { background: var(--amber-light); }
+    .stat-chip.purple { background: var(--purple-light); }
+    .stat-chip .sc-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); }
+    .stat-chip .sc-val { font-size: 1.5rem; font-weight: 800; color: var(--text); margin-top: 2px; line-height: 1; }
+    .stat-chip .sc-sub { font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
+    .stat-chip.accent .sc-val { color: var(--accent); }
+    .stat-chip.green .sc-val { color: var(--green); }
+    .stat-chip.amber .sc-val { color: var(--amber); }
+    .stat-chip.purple .sc-val { color: var(--purple); }
+
+    /* ── History list ── */
+    .history-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 13px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .hi-top { display: flex; align-items: center; justify-content: space-between; }
+    .hi-meal { font-size: 0.9rem; font-weight: 600; }
+    .hi-time { font-size: 0.72rem; color: var(--muted); }
+    .hi-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .chip {
+      font-size: 0.68rem; font-weight: 600; padding: 3px 8px;
+      border-radius: 20px; white-space: nowrap;
+    }
+    .chip-blue { background: var(--accent-light); color: var(--accent); }
+    .chip-green { background: var(--green-light); color: var(--green); }
+    .chip-amber { background: var(--amber-light); color: var(--amber); }
+    .chip-red { background: var(--red-light); color: var(--red); }
+    .chip-gray { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+    .chip-purple { background: var(--purple-light); color: var(--purple); }
+
+    /* ── BP list ── */
+    .bp-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .bp-reading { font-size: 1.1rem; font-weight: 700; }
+    .bp-meta { font-size: 0.72rem; color: var(--muted); text-align: right; }
+
+    /* ── Weight list ── */
+    .wt-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .wt-val { font-size: 1.1rem; font-weight: 700; }
+    .wt-meta { font-size: 0.72rem; color: var(--muted); text-align: right; }
+
+    /* ── Empty / loading states ── */
+    .empty-state { text-align: center; padding: 32px 16px; color: var(--muted); font-size: 0.85rem; }
+    .empty-state .es-icon { font-size: 2rem; margin-bottom: 8px; }
+    .loading { text-align: center; padding: 24px; color: var(--muted); font-size: 0.85rem; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: calc(var(--tab-h) + var(--safe-bottom) + 12px);
+      left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #1a1a2e; color: #fff;
+      padding: 10px 18px; border-radius: 20px;
+      font-size: 0.82rem; font-weight: 500;
+      opacity: 0; transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none; z-index: 100; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Settings ── */
+    .settings-section-title {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--muted); margin-bottom: 10px;
+    }
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .derived-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+      margin-top: 12px; padding: 12px;
+      background: var(--accent-light); border-radius: var(--radius-sm);
+      text-align: center;
+    }
+    .dr-label { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--accent); }
+    .dr-val { font-size: 1rem; font-weight: 800; color: var(--accent); margin-top: 2px; }
+
+    /* ── Misc ── */
+    .divider { height: 1px; background: var(--border); }
+    .section-gap { height: 4px; }
+    .bold { font-weight: 700; }
+    .text-muted { color: var(--muted); font-size: 0.8rem; }
+
+    /* ── Config banner (shown when Supabase not configured) ── */
+    .config-banner {
       background: var(--amber-light);
       border: 1.5px solid #fcd34d;
       border-radius: var(--radius-sm);
-      padding: 14px;
-    }
-
-    .safety-alert.visible { display: flex; }
-
-    .safety-alert svg { flex-shrink: 0; margin-top: 1px; }
-
-    .safety-alert .sa-title {
-      font-size: 0.82rem;
-      font-weight: 700;
-      color: var(--amber);
-      margin-bottom: 4px;
-    }
-
-    .safety-alert .sa-body {
-      font-size: 0.82rem;
+      padding: 12px 14px;
+      font-size: 0.8rem;
       color: #92400e;
       line-height: 1.5;
     }
-
-    .safety-alert .sa-body strong { font-size: 1rem; }
-
-    /* ── Footer ── */
-    footer {
-      margin-top: 28px;
-      font-size: 0.72rem;
-      color: #adb5bd;
-      text-align: center;
-      line-height: 1.6;
-    }
-
-    @media (max-width: 380px) {
-      .bolus-grid { grid-template-columns: 1fr; }
-      .settings-grid3 { grid-template-columns: 1fr 1fr; }
-    }
+    .config-banner strong { display: block; font-size: 0.85rem; margin-bottom: 2px; }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>🩺 DiaBestie</h1>
-    <p>Post-prandial bolus calculator</p>
-  </header>
+<!-- ── Top bar ── -->
+<div class="topbar">
+  <h1>🩺 DiaBestie</h1>
+  <span id="topbarDate"></span>
+</div>
 
-  <!-- ── Input Card ── -->
+<!-- ════════════════════════════════════════
+     PAGE: CALCULATOR
+════════════════════════════════════════ -->
+<div class="page active" id="page-calc">
+
+  <!-- Supabase config warning -->
+  <div class="config-banner" id="configBanner" style="display:none">
+    <strong>⚠️ Database not connected</strong>
+    Open Settings → enter your Supabase URL &amp; key to enable data logging.
+  </div>
+
+  <!-- Inputs -->
   <div class="card">
+    <div class="card-title">Bolus Calculator</div>
     <div class="field">
       <label for="currentBS">Current Blood Sugar</label>
       <div class="input-wrap">
@@ -351,7 +389,6 @@
         <span class="unit-badge">mg/dL</span>
       </div>
     </div>
-
     <div class="field">
       <label for="carbs">Carbs to Eat</label>
       <div class="input-wrap">
@@ -359,249 +396,701 @@
         <span class="unit-badge">g</span>
       </div>
     </div>
-
-    <button class="calc-btn" onclick="calculate()">Calculate Bolus</button>
+    <button class="btn btn-primary" onclick="calculate()">Calculate Bolus</button>
   </div>
 
-  <!-- ── Settings Card ── -->
-  <div class="card">
-    <button class="settings-toggle" aria-expanded="false" onclick="toggleSettings(this)">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06
-                 a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09
-                 A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83
-                 l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09
-                 A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83
-                 l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09
-                 a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83
-                 l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09
-                 a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
-      Settings
-      <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-           fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="6 9 12 15 18 9"/>
-      </svg>
-    </button>
+  <!-- Results -->
+  <div class="card" id="resultsCard" style="display:none">
+    <div class="card-title">Bolus Options — tap to select</div>
 
-    <div class="settings-body" id="settingsBody">
-
-      <!-- Row 1: IC ratio + Target BS -->
-      <div class="settings-grid">
-        <div class="field" style="margin-bottom:0">
-          <label for="icDenom">I:C Ratio (1 : X)</label>
-          <div class="input-wrap">
-            <input type="number" id="icDenom" value="15" min="1" max="50"
-                   inputmode="decimal" oninput="updateDerived()" />
-            <span class="unit-badge">g/u</span>
-          </div>
-        </div>
-        <div class="field" style="margin-bottom:0">
-          <label for="targetBS">Target Blood Sugar</label>
-          <div class="input-wrap">
-            <input type="number" id="targetBS" value="80" min="60" max="200" inputmode="decimal" />
-            <span class="unit-badge">mg/dL</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Row 2: Correction Factor -->
-      <div class="settings-grid" style="margin-top:14px">
-        <div class="field" style="margin-bottom:0">
-          <label for="cf">Correction Factor</label>
-          <div class="input-wrap">
-            <input type="number" id="cf" value="60" min="10" max="200"
-                   inputmode="decimal" oninput="updateDerived()" />
-            <span class="unit-badge">mg/dL/u</span>
-          </div>
-        </div>
-        <div class="field" style="margin-bottom:0">
-          <label for="tdi">Total Daily Insulin</label>
-          <div class="input-wrap">
-            <input type="number" id="tdi" placeholder="30" min="1" max="200"
-                   inputmode="decimal" oninput="calcFromTDI()" />
-            <span class="unit-badge">u/day</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Derived: Carb:BS ratio -->
-      <div class="derived-vals">
-        <div>
-          <div class="dv-label">Carb : BS Ratio</div>
-          <div class="dv-val" id="dvCarbBS">4.0</div>
-        </div>
-        <div>
-          <div class="dv-label">1g carbs raises BS by</div>
-          <div class="dv-val" id="dvPerGram">4.0 mg/dL</div>
-        </div>
-      </div>
-
-      <p class="settings-hint">
-        Enter your I:C ratio and Correction Factor directly, or enter your TDI and they'll be calculated automatically (I:C = 500÷TDI, CF = 1800÷TDI).
-      </p>
-    </div>
-  </div>
-
-  <!-- ── Results Card ── -->
-  <div class="card" id="results">
-    <div class="results-header">Bolus Options</div>
-
-    <div class="bolus-grid">
-      <div class="bolus-option" id="optDown">
+    <div class="bolus-grid" id="bolusGrid">
+      <div class="bolus-option" id="optDown" onclick="selectBolus('down')">
         <div class="opt-label">Conservative</div>
         <div class="opt-units" id="downUnits">—</div>
         <div class="opt-suffix">units</div>
-        <div class="opt-bs">
-          Est. post-meal BS
-          <strong id="downBS">—</strong>
-        </div>
+        <div class="opt-bs">Est. post-meal BS<strong id="downBS">—</strong></div>
       </div>
-
-      <div class="bolus-option" id="optUp">
+      <div class="bolus-option" id="optUp" onclick="selectBolus('up')">
         <div class="opt-label">Aggressive</div>
         <div class="opt-units" id="upUnits">—</div>
         <div class="opt-suffix">units</div>
-        <div class="opt-bs">
-          Est. post-meal BS
-          <strong id="upBS">—</strong>
-        </div>
+        <div class="opt-bs">Est. post-meal BS<strong id="upBS">—</strong></div>
       </div>
     </div>
 
-    <!-- Safety carbs alert -->
-    <div class="safety-alert" id="safetyAlert">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-           fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <div class="safety-alert" id="safetyAlert" style="margin-top:10px">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-        <line x1="12" y1="9" x2="12" y2="13"/>
-        <line x1="12" y1="17" x2="12.01" y2="17"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
       </svg>
       <div>
         <div class="sa-title">Safety Carbs Needed</div>
-        <div class="sa-body" id="safetyBody">—</div>
+        <div class="sa-body" id="safetyBody"></div>
+      </div>
+    </div>
+
+    <!-- Log panel -->
+    <div class="log-panel" id="logPanel">
+      <div class="field">
+        <label for="mealDesc">Meal Description</label>
+        <textarea id="mealDesc" placeholder="e.g. Chicken burrito, rice, beans…"></textarea>
+      </div>
+
+      <label for="walkToggle" style="margin-bottom:0">
+        <div class="toggle-row" onclick="document.getElementById('walkToggle').click()">
+          <span class="toggle-label">🚶 Walked after last meal?</span>
+          <div class="toggle-switch"></div>
+          <input type="checkbox" id="walkToggle" />
+        </div>
+      </label>
+
+      <button class="btn btn-success" onclick="logMeal()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Log This Meal
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE: HISTORY
+════════════════════════════════════════ -->
+<div class="page" id="page-history">
+
+  <div class="card">
+    <div class="card-title">Glucose Averages</div>
+    <div class="stat-row">
+      <div class="stat-chip accent">
+        <div class="sc-label">7-day avg BS</div>
+        <div class="sc-val" id="avg7">—</div>
+        <div class="sc-sub">mg/dL pre-meal</div>
+      </div>
+      <div class="stat-chip green">
+        <div class="sc-label">30-day avg BS</div>
+        <div class="sc-val" id="avg30">—</div>
+        <div class="sc-sub">mg/dL pre-meal</div>
+      </div>
+    </div>
+    <div class="stat-row" style="margin-top:10px">
+      <div class="stat-chip purple">
+        <div class="sc-label">Est. A1c</div>
+        <div class="sc-val" id="estA1c">—</div>
+        <div class="sc-sub">from 30-day avg</div>
+      </div>
+      <div class="stat-chip amber">
+        <div class="sc-label">Meals walked</div>
+        <div class="sc-val" id="walkedPct">—</div>
+        <div class="sc-sub">last 30 days</div>
       </div>
     </div>
   </div>
 
-  <footer>
-    For personal use only · Not medical advice<br/>
-    Always verify with your endocrinologist
-  </footer>
+  <div>
+    <div class="card-title" style="padding: 0 4px 6px">Meal Log</div>
+    <div id="historyList"><div class="loading">Loading…</div></div>
+  </div>
 
-  <script>
-    const $ = id => document.getElementById(id);
+</div>
 
-    // ── Settings toggle ───────────────────────────────────────────────────
-    function toggleSettings(btn) {
-      const body = $('settingsBody');
-      const expanded = btn.getAttribute('aria-expanded') === 'true';
-      btn.setAttribute('aria-expanded', String(!expanded));
-      body.classList.toggle('open', !expanded);
+<!-- ════════════════════════════════════════
+     PAGE: HEALTH
+════════════════════════════════════════ -->
+<div class="page" id="page-health">
+
+  <!-- Blood Pressure -->
+  <div class="card">
+    <div class="card-title">Log Blood Pressure</div>
+    <div class="settings-grid">
+      <div class="field" style="margin-bottom:0">
+        <label for="bpSys">Systolic</label>
+        <div class="input-wrap">
+          <input type="number" id="bpSys" placeholder="120" min="60" max="220" inputmode="decimal" />
+          <span class="unit-badge">mmHg</span>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label for="bpDia">Diastolic</label>
+        <div class="input-wrap">
+          <input type="number" id="bpDia" placeholder="80" min="40" max="140" inputmode="decimal" />
+          <span class="unit-badge">mmHg</span>
+        </div>
+      </div>
+    </div>
+    <div class="field" style="margin-top:12px;margin-bottom:0">
+      <label for="bpPulse">Pulse (optional)</label>
+      <div class="input-wrap">
+        <input type="number" id="bpPulse" placeholder="72" min="30" max="220" inputmode="decimal" />
+        <span class="unit-badge">bpm</span>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:14px" onclick="logBP()">Log Reading</button>
+  </div>
+
+  <!-- BP History -->
+  <div>
+    <div class="card-title" style="padding: 0 4px 6px">BP History</div>
+    <div class="stat-row" style="margin-bottom:10px">
+      <div class="stat-chip accent">
+        <div class="sc-label">Avg Systolic</div>
+        <div class="sc-val" id="avgSys">—</div>
+        <div class="sc-sub">last 10 readings</div>
+      </div>
+      <div class="stat-chip green">
+        <div class="sc-label">Avg Diastolic</div>
+        <div class="sc-val" id="avgDia">—</div>
+        <div class="sc-sub">last 10 readings</div>
+      </div>
+    </div>
+    <div id="bpList"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- Weight -->
+  <div class="card">
+    <div class="card-title">Log Weight</div>
+    <div class="field" style="margin-bottom:0">
+      <label for="weightVal">Weight</label>
+      <div class="input-wrap">
+        <input type="number" id="weightVal" placeholder="175" min="50" max="500" inputmode="decimal" step="0.1" />
+        <span class="unit-badge">lbs</span>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:14px" onclick="logWeight()">Log Weight</button>
+  </div>
+
+  <!-- Weight History -->
+  <div>
+    <div class="card-title" style="padding: 0 4px 6px">Weight History</div>
+    <div id="weightList"><div class="loading">Loading…</div></div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE: SETTINGS
+════════════════════════════════════════ -->
+<div class="page" id="page-settings">
+
+  <div class="card">
+    <div class="settings-section-title">Insulin Settings</div>
+    <div class="settings-grid">
+      <div class="field" style="margin-bottom:0">
+        <label for="s_icDenom">I:C Ratio (1 : X)</label>
+        <div class="input-wrap">
+          <input type="number" id="s_icDenom" value="15" min="1" max="50" inputmode="decimal" oninput="saveSettings(); updateDerived()" />
+          <span class="unit-badge">g/u</span>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label for="s_cf">Correction Factor</label>
+        <div class="input-wrap">
+          <input type="number" id="s_cf" value="60" min="10" max="200" inputmode="decimal" oninput="saveSettings(); updateDerived()" />
+          <span class="unit-badge">mg/dL/u</span>
+        </div>
+      </div>
+    </div>
+    <div class="settings-grid" style="margin-top:12px">
+      <div class="field" style="margin-bottom:0">
+        <label for="s_targetBS">Target Blood Sugar</label>
+        <div class="input-wrap">
+          <input type="number" id="s_targetBS" value="80" min="60" max="200" inputmode="decimal" oninput="saveSettings()" />
+          <span class="unit-badge">mg/dL</span>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label for="s_tdi">TDI (auto-fills above)</label>
+        <div class="input-wrap">
+          <input type="number" id="s_tdi" placeholder="30" min="1" max="200" inputmode="decimal" oninput="calcFromTDI()" />
+          <span class="unit-badge">u/day</span>
+        </div>
+      </div>
+    </div>
+    <div class="derived-row" id="derivedRow">
+      <div><div class="dr-label">I:C</div><div class="dr-val" id="dv_ic">1:15</div></div>
+      <div><div class="dr-label">CF</div><div class="dr-val" id="dv_cf">60</div></div>
+      <div><div class="dr-label">Carb:BS</div><div class="dr-val" id="dv_carbbs">4.0</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="settings-section-title">Supabase Database</div>
+    <div class="field">
+      <label for="s_url">Project URL</label>
+      <input type="text" id="s_url" placeholder="https://xxxx.supabase.co" oninput="saveSettings()" />
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label for="s_key">Anon Public Key</label>
+      <input type="text" id="s_key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVC…" oninput="saveSettings()" />
+    </div>
+    <button class="btn btn-secondary" style="margin-top:14px" onclick="testConnection()">Test Connection</button>
+    <p class="text-muted" style="margin-top:10px;line-height:1.5">
+      See <strong>SUPABASE_SETUP.md</strong> in your project folder for the full setup guide and SQL to run.
+    </p>
+  </div>
+
+</div>
+
+<!-- ── Tab bar ── -->
+<nav class="tabbar">
+  <button class="tab-btn active" onclick="showPage('calc', this)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+    Calculator
+  </button>
+  <button class="tab-btn" onclick="showPage('history', this)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    History
+  </button>
+  <button class="tab-btn" onclick="showPage('health', this)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    Health
+  </button>
+  <button class="tab-btn" onclick="showPage('settings', this)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </button>
+</nav>
+
+<!-- ── Toast ── -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let supabase = null;
+let calcState = { bolusDn: 0, bolusUp: 0, projDn: 0, projUp: 0, selected: null };
+let settings  = {};
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  loadSettings();
+  initSupabase();
+  loadHistory();
+  loadBPList();
+  loadWeightList();
+});
+
+// ════════════════════════════════════════
+// SETTINGS (localStorage)
+// ════════════════════════════════════════
+function loadSettings() {
+  const saved = JSON.parse(localStorage.getItem('diabestie_settings') || '{}');
+  settings = Object.assign({ icDenom: 15, cf: 60, targetBS: 80, url: '', key: '' }, saved);
+  document.getElementById('s_icDenom').value  = settings.icDenom;
+  document.getElementById('s_cf').value       = settings.cf;
+  document.getElementById('s_targetBS').value = settings.targetBS;
+  document.getElementById('s_url').value      = settings.url || '';
+  document.getElementById('s_key').value      = settings.key || '';
+  updateDerived();
+}
+
+function saveSettings() {
+  settings.icDenom  = parseFloat(document.getElementById('s_icDenom').value) || 15;
+  settings.cf       = parseFloat(document.getElementById('s_cf').value) || 60;
+  settings.targetBS = parseFloat(document.getElementById('s_targetBS').value) || 80;
+  settings.url      = document.getElementById('s_url').value.trim();
+  settings.key      = document.getElementById('s_key').value.trim();
+  localStorage.setItem('diabestie_settings', JSON.stringify(settings));
+  initSupabase();
+}
+
+function calcFromTDI() {
+  const tdi = parseFloat(document.getElementById('s_tdi').value);
+  if (!tdi || tdi <= 0) return;
+  document.getElementById('s_icDenom').value = Math.round(500 / tdi);
+  document.getElementById('s_cf').value      = Math.round(1800 / tdi);
+  saveSettings();
+  updateDerived();
+}
+
+function updateDerived() {
+  const ic     = parseFloat(document.getElementById('s_icDenom').value) || 15;
+  const cf     = parseFloat(document.getElementById('s_cf').value) || 60;
+  const carbBS = (cf / ic).toFixed(1);
+  document.getElementById('dv_ic').textContent     = `1:${ic}`;
+  document.getElementById('dv_cf').textContent     = cf;
+  document.getElementById('dv_carbbs').textContent = carbBS;
+}
+
+// ════════════════════════════════════════
+// SUPABASE
+// ════════════════════════════════════════
+function initSupabase() {
+  const url = settings.url;
+  const key = settings.key;
+  const banner = document.getElementById('configBanner');
+  if (url && key) {
+    try {
+      supabase = window.supabase.createClient(url, key);
+      banner.style.display = 'none';
+    } catch(e) {
+      supabase = null;
+      banner.style.display = 'block';
     }
+  } else {
+    supabase = null;
+    banner.style.display = 'block';
+  }
+}
 
-    // ── Update derived display ────────────────────────────────────────────
-    function updateDerived() {
-      const ic   = parseFloat($('icDenom').value) || 15;
-      const cf   = parseFloat($('cf').value) || 60;
-      const ratio = cf / ic;
-      $('dvCarbBS').textContent  = ratio.toFixed(1);
-      $('dvPerGram').textContent = ratio.toFixed(1) + ' mg/dL';
-    }
+async function testConnection() {
+  if (!supabase) { showToast('⚠️ Enter URL & key first'); return; }
+  try {
+    const { error } = await supabase.from('meals').select('id').limit(1);
+    if (error) { showToast('❌ ' + error.message); }
+    else        { showToast('✅ Connected to Supabase!'); }
+  } catch(e) { showToast('❌ Connection failed'); }
+}
 
-    // ── Auto-fill from TDI ────────────────────────────────────────────────
-    function calcFromTDI() {
-      const tdi = parseFloat($('tdi').value);
-      if (!tdi || tdi <= 0) return;
-      const ic = Math.round(500 / tdi);
-      const cf = Math.round(1800 / tdi);
-      $('icDenom').value = ic;
-      $('cf').value = cf;
-      updateDerived();
-    }
+// ════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'history') { loadHistory(); }
+  if (name === 'health')  { loadBPList(); loadWeightList(); }
+}
 
-    // ── Get active settings ───────────────────────────────────────────────
-    function getSettings() {
-      const ic       = parseFloat($('icDenom').value) || 15;
-      const cf       = parseFloat($('cf').value) || 60;
-      const targetBS = parseFloat($('targetBS').value) || 80;
-      const carbBS   = cf / ic;   // how much 1g of carbs raises BS
-      return { ic, cf, targetBS, carbBS };
-    }
+// ════════════════════════════════════════
+// CALCULATOR
+// ════════════════════════════════════════
+function getCalcSettings() {
+  return {
+    ic:       settings.icDenom || 15,
+    cf:       settings.cf || 60,
+    targetBS: settings.targetBS || 80,
+    carbBS:   (settings.cf || 60) / (settings.icDenom || 15)
+  };
+}
 
-    // ── BS status class ───────────────────────────────────────────────────
-    function bsStatus(bs, target) {
-      if (bs < target)          return 'status-low';
-      if (bs <= target + 40)    return 'status-good';
-      return 'status-warn';
-    }
+function bsStatus(bs, target) {
+  if (bs < target)         return 'status-low';
+  if (bs <= target + 40)   return 'status-good';
+  return 'status-warn';
+}
 
-    // ── Main calculation ──────────────────────────────────────────────────
-    function calculate() {
-      const currentBS = parseFloat($('currentBS').value);
-      const carbs     = parseFloat($('carbs').value);
+function calculate() {
+  const currentBS = parseFloat(document.getElementById('currentBS').value);
+  const carbs     = parseFloat(document.getElementById('carbs').value);
+  if (isNaN(currentBS) || currentBS < 40) { showToast('Enter a valid blood sugar (≥40)'); return; }
+  if (isNaN(carbs) || carbs < 0)          { showToast('Enter carbs (0 or more)'); return; }
 
-      if (isNaN(currentBS) || currentBS < 40) {
-        alert('Please enter a valid blood sugar (40 – 400 mg/dL).');
-        return;
-      }
-      if (isNaN(carbs) || carbs < 0) {
-        alert('Please enter the number of carbs (0 or more).');
-        return;
-      }
+  const { ic, cf, targetBS, carbBS } = getCalcSettings();
+  const bolusDn = Math.floor(carbs / ic);
+  const bolusUp = Math.ceil(carbs / ic);
+  const projDn  = currentBS + (carbBS * carbs) - (bolusDn * cf);
+  const projUp  = currentBS + (carbBS * carbs) - (bolusUp * cf);
 
-      const { ic, cf, targetBS, carbBS } = getSettings();
+  calcState = { currentBS, carbs, bolusDn, bolusUp, projDn, projUp, selected: null, carbBS, cf, targetBS };
 
-      // Bolus options
-      const bolusDn = Math.floor(carbs / ic);  // conservative (round down)
-      const bolusUp = Math.ceil(carbs / ic);   // aggressive (round up)
+  document.getElementById('downUnits').textContent = bolusDn;
+  document.getElementById('downBS').textContent    = Math.round(projDn) + ' mg/dL';
+  document.getElementById('optDown').className     = `bolus-option ${bsStatus(projDn, targetBS)}`;
 
-      // Projected post-meal BS
-      // currentBS + (carbBS × carbs) - (bolus × cf)
-      const projDn = currentBS + (carbBS * carbs) - (bolusDn * cf);
-      const projUp = currentBS + (carbBS * carbs) - (bolusUp * cf);
+  document.getElementById('upUnits').textContent = bolusUp;
+  document.getElementById('upBS').textContent    = Math.round(projUp) + ' mg/dL';
+  document.getElementById('optUp').className     = `bolus-option ${bsStatus(projUp, targetBS)}`;
 
-      // Render conservative
-      $('downUnits').textContent = bolusDn;
-      $('downBS').textContent    = Math.round(projDn) + ' mg/dL';
-      $('optDown').className     = `bolus-option ${bsStatus(projDn, targetBS)}`;
+  // Safety carbs
+  const sa = document.getElementById('safetyAlert');
+  if (bolusUp > 0 && projUp < targetBS) {
+    const sc  = Math.ceil((targetBS - projUp) / carbBS);
+    const cor = Math.round(projUp + sc * carbBS);
+    document.getElementById('safetyBody').innerHTML =
+      `Aggressive dose (<strong>${bolusUp}u</strong>): eat <strong>${sc}g</strong> fast carbs → est. ${Math.round(projUp)} → <strong>${cor} mg/dL</strong>`;
+    sa.classList.add('visible');
+  } else {
+    sa.classList.remove('visible');
+  }
 
-      // Render aggressive
-      $('upUnits').textContent = bolusUp;
-      $('upBS').textContent    = Math.round(projUp) + ' mg/dL';
-      $('optUp').className     = `bolus-option ${bsStatus(projUp, targetBS)}`;
+  document.getElementById('resultsCard').style.display = 'block';
+  document.getElementById('logPanel').classList.remove('visible');
+  calcState.selected = null;
+  document.getElementById('optDown').classList.remove('selected');
+  document.getElementById('optUp').classList.remove('selected');
+}
 
-      // Safety carbs: if aggressive bolus drives BS below target
-      const safetyAlert = $('safetyAlert');
-      const safetyBody  = $('safetyBody');
+function selectBolus(which) {
+  calcState.selected = which;
+  document.getElementById('optDown').classList.toggle('selected', which === 'down');
+  document.getElementById('optUp').classList.toggle('selected', which === 'up');
+  document.getElementById('logPanel').classList.add('visible');
+}
 
-      if (bolusUp > 0 && projUp < targetBS) {
-        // How many grams to raise BS from projUp back to target
-        const safetyCarbs = Math.ceil((targetBS - projUp) / carbBS);
-        const correctedBS = Math.round(projUp + safetyCarbs * carbBS);
-        safetyBody.innerHTML =
-          `If taking the aggressive dose (<strong>${bolusUp}u</strong>), eat ` +
-          `<strong>${safetyCarbs}g</strong> of fast carbs to avoid a low. ` +
-          `Est. post-meal BS: ${Math.round(projUp)} → <strong>${correctedBS} mg/dL</strong>.`;
-        safetyAlert.classList.add('visible');
-      } else {
-        safetyAlert.classList.remove('visible');
-      }
+// ════════════════════════════════════════
+// LOG MEAL
+// ════════════════════════════════════════
+async function logMeal() {
+  if (!calcState.selected) { showToast('Select a bolus option first'); return; }
 
-      $('results').style.display = 'block';
-      setTimeout(() =>
-        $('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
-    }
+  const bolus_given = calcState.selected === 'down' ? calcState.bolusDn : calcState.bolusUp;
+  const meal_desc   = document.getElementById('mealDesc').value.trim();
+  const walked      = document.getElementById('walkToggle').checked;
 
-    // ── Enter key ─────────────────────────────────────────────────────────
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Enter') calculate();
-    });
+  const entry = {
+    logged_at:    new Date().toISOString(),
+    pre_bs:       calcState.currentBS,
+    carbs:        calcState.carbs,
+    bolus_given,
+    bolus_type:   calcState.selected,
+    meal_desc:    meal_desc || null,
+    walked,
+  };
 
-    // ── Init ──────────────────────────────────────────────────────────────
-    updateDerived();
-  </script>
+  if (supabase) {
+    const { error } = await supabase.from('meals').insert(entry);
+    if (error) { showToast('❌ Save failed: ' + error.message); return; }
+  } else {
+    // Fallback to localStorage
+    const local = JSON.parse(localStorage.getItem('diabestie_meals') || '[]');
+    local.unshift({ ...entry, id: Date.now() });
+    localStorage.setItem('diabestie_meals', JSON.stringify(local.slice(0, 200)));
+  }
+
+  showToast('✅ Meal logged!');
+  document.getElementById('mealDesc').value = '';
+  document.getElementById('walkToggle').checked = false;
+  document.getElementById('logPanel').classList.remove('visible');
+  document.getElementById('resultsCard').style.display = 'none';
+  document.getElementById('currentBS').value = '';
+  document.getElementById('carbs').value = '';
+}
+
+// ════════════════════════════════════════
+// HISTORY
+// ════════════════════════════════════════
+async function loadHistory() {
+  let meals = [];
+
+  if (supabase) {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+    const { data, error } = await supabase
+      .from('meals')
+      .select('*')
+      .gte('logged_at', thirtyDaysAgo)
+      .order('logged_at', { ascending: false })
+      .limit(100);
+    if (!error && data) meals = data;
+  } else {
+    meals = JSON.parse(localStorage.getItem('diabestie_meals') || '[]');
+  }
+
+  renderStats(meals);
+  renderMealList(meals);
+}
+
+function renderStats(meals) {
+  const now = Date.now();
+  const d7  = meals.filter(m => new Date(m.logged_at) > new Date(now - 7  * 86400000));
+  const d30 = meals.filter(m => new Date(m.logged_at) > new Date(now - 30 * 86400000));
+
+  const avg = arr => arr.length ? Math.round(arr.reduce((s, m) => s + m.pre_bs, 0) / arr.length) : null;
+  const a7  = avg(d7);
+  const a30 = avg(d30);
+
+  document.getElementById('avg7').textContent  = a7  !== null ? a7  : '—';
+  document.getElementById('avg30').textContent = a30 !== null ? a30 : '—';
+
+  // Estimated A1c: (avg_glucose + 46.7) / 28.7
+  if (a30 !== null) {
+    const a1c = ((a30 + 46.7) / 28.7).toFixed(1);
+    document.getElementById('estA1c').textContent = a1c + '%';
+  } else {
+    document.getElementById('estA1c').textContent = '—';
+  }
+
+  // Walked %
+  if (d30.length > 0) {
+    const walkedCount = d30.filter(m => m.walked).length;
+    document.getElementById('walkedPct').textContent = Math.round((walkedCount / d30.length) * 100) + '%';
+  } else {
+    document.getElementById('walkedPct').textContent = '—';
+  }
+}
+
+function renderMealList(meals) {
+  const el = document.getElementById('historyList');
+  if (!meals.length) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">🍽️</div>No meals logged yet</div>';
+    return;
+  }
+
+  el.innerHTML = meals.map(m => {
+    const dt    = new Date(m.logged_at);
+    const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const bsClass = m.pre_bs < 70 ? 'chip-red' : m.pre_bs <= 180 ? 'chip-green' : 'chip-amber';
+
+    return `
+      <div class="history-item">
+        <div class="hi-top">
+          <div class="hi-meal">${m.meal_desc || 'Meal'}</div>
+          <div class="hi-time">${dateStr} · ${timeStr}</div>
+        </div>
+        <div class="hi-chips">
+          <span class="chip ${bsClass}">BS ${m.pre_bs}</span>
+          <span class="chip chip-blue">${m.carbs}g carbs</span>
+          <span class="chip chip-purple">${m.bolus_given}u ${m.bolus_type === 'down' ? 'conservative' : 'aggressive'}</span>
+          ${m.walked ? '<span class="chip chip-green">🚶 Walked</span>' : '<span class="chip chip-gray">No walk</span>'}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+// BLOOD PRESSURE
+// ════════════════════════════════════════
+async function logBP() {
+  const sys   = parseFloat(document.getElementById('bpSys').value);
+  const dia   = parseFloat(document.getElementById('bpDia').value);
+  const pulse = parseFloat(document.getElementById('bpPulse').value) || null;
+
+  if (isNaN(sys) || isNaN(dia)) { showToast('Enter systolic and diastolic'); return; }
+
+  const entry = { logged_at: new Date().toISOString(), systolic: sys, diastolic: dia, pulse };
+
+  if (supabase) {
+    const { error } = await supabase.from('blood_pressure').insert(entry);
+    if (error) { showToast('❌ ' + error.message); return; }
+  } else {
+    const local = JSON.parse(localStorage.getItem('diabestie_bp') || '[]');
+    local.unshift({ ...entry, id: Date.now() });
+    localStorage.setItem('diabestie_bp', JSON.stringify(local.slice(0, 100)));
+  }
+
+  showToast('✅ BP logged!');
+  document.getElementById('bpSys').value   = '';
+  document.getElementById('bpDia').value   = '';
+  document.getElementById('bpPulse').value = '';
+  loadBPList();
+}
+
+async function loadBPList() {
+  let readings = [];
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('blood_pressure')
+      .select('*')
+      .order('logged_at', { ascending: false })
+      .limit(20);
+    if (!error && data) readings = data;
+  } else {
+    readings = JSON.parse(localStorage.getItem('diabestie_bp') || '[]');
+  }
+
+  // Averages (last 10)
+  const last10 = readings.slice(0, 10);
+  if (last10.length) {
+    document.getElementById('avgSys').textContent = Math.round(last10.reduce((s, r) => s + r.systolic, 0)  / last10.length);
+    document.getElementById('avgDia').textContent = Math.round(last10.reduce((s, r) => s + r.diastolic, 0) / last10.length);
+  }
+
+  const el = document.getElementById('bpList');
+  if (!readings.length) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">💓</div>No readings yet</div>';
+    return;
+  }
+
+  el.innerHTML = readings.map(r => {
+    const dt = new Date(r.logged_at);
+    const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const sysColor = r.systolic >= 140 ? 'var(--red)' : r.systolic >= 130 ? 'var(--amber)' : 'var(--green)';
+    return `
+      <div class="bp-item">
+        <div>
+          <div class="bp-reading" style="color:${sysColor}">${r.systolic}/${r.diastolic}</div>
+          ${r.pulse ? `<div style="font-size:0.75rem;color:var(--muted);margin-top:2px">♥ ${r.pulse} bpm</div>` : ''}
+        </div>
+        <div class="bp-meta">${dateStr}<br/>${timeStr}</div>
+      </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+// WEIGHT
+// ════════════════════════════════════════
+async function logWeight() {
+  const w = parseFloat(document.getElementById('weightVal').value);
+  if (isNaN(w) || w < 50) { showToast('Enter a valid weight'); return; }
+
+  const entry = { logged_at: new Date().toISOString(), weight_lbs: w };
+
+  if (supabase) {
+    const { error } = await supabase.from('weight').insert(entry);
+    if (error) { showToast('❌ ' + error.message); return; }
+  } else {
+    const local = JSON.parse(localStorage.getItem('diabestie_weight') || '[]');
+    local.unshift({ ...entry, id: Date.now() });
+    localStorage.setItem('diabestie_weight', JSON.stringify(local.slice(0, 100)));
+  }
+
+  showToast('✅ Weight logged!');
+  document.getElementById('weightVal').value = '';
+  loadWeightList();
+}
+
+async function loadWeightList() {
+  let entries = [];
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('weight')
+      .select('*')
+      .order('logged_at', { ascending: false })
+      .limit(20);
+    if (!error && data) entries = data;
+  } else {
+    entries = JSON.parse(localStorage.getItem('diabestie_weight') || '[]');
+  }
+
+  const el = document.getElementById('weightList');
+  if (!entries.length) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">⚖️</div>No weight entries yet</div>';
+    return;
+  }
+
+  // Calculate trend vs first entry
+  const latest  = entries[0].weight_lbs;
+  const oldest  = entries[entries.length - 1].weight_lbs;
+  const diff    = (latest - oldest).toFixed(1);
+  const trendTxt = diff > 0 ? `▲ +${diff} lbs` : diff < 0 ? `▼ ${diff} lbs` : '→ No change';
+  const trendColor = diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--amber)' : 'var(--muted)';
+
+  el.innerHTML = `
+    <div style="text-align:center;padding:8px 0 12px;font-size:0.8rem;font-weight:600;color:${trendColor}">${trendTxt} since first entry</div>
+    ${entries.map(e => {
+      const dt = new Date(e.logged_at);
+      return `<div class="wt-item">
+        <div class="wt-val">${e.weight_lbs} lbs</div>
+        <div class="wt-meta">${dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}<br/>${dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
+      </div>`;
+    }).join('')}`;
+}
+
+// ════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ════════════════════════════════════════
+// ENTER KEY
+// ════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('page-calc').classList.contains('active')) calculate();
+});
+</script>
 </body>
 </html>
